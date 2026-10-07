@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "홍길동 프로필",
-  description: "안녕하세요! 바이브 코딩을 배우고 있는 대학생입니다.",
+  title: "한서희 | Frontend Developer Profile & Links",
+  description: "사용자 중심의 인터랙션과 깔끔한 웹을 만드는 프론트엔드 개발자 한서희의 프로필 및 링크 모음입니다.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
