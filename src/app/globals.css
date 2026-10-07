@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f2f4f6; /* TDS grey-100 */
+  --foreground: #191f28; /* TDS grey-900 */
+  --tds-blue-500: #3182f6;
+  --tds-blue-50: #e8f3ff;
+  --tds-grey-900: #191f28;
+  --tds-grey-800: #333d4b;
+  --tds-grey-700: #4e5968;
+  --tds-grey-600: #6b7684;
+  --tds-grey-500: #8b95a1;
+  --tds-grey-400: #b0b8c1;
+  --tds-grey-300: #d1d6db;
+  --tds-grey-200: #e5e8eb;
+  --tds-grey-100: #f2f4f6;
+  --tds-grey-50: #f9fafb;
 }
 
 @theme inline {
@@ -12,16 +24,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+::selection {
+  background-color: #e8f3ff;
+  color: #3182f6;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-family: "Pretendard Variable", Pretendard, var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", Roboto, sans-serif;
   letter-spacing: -0.015em;
+  -webkit-font-smoothing: antialiased;
 }
