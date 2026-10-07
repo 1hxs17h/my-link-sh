@@ -18,7 +18,7 @@ export default function Home() {
 
         {/* 서브 타이틀 / 배지 */}
         <span className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-700/30">
-          대학생 · Vibe Coding
+          Frontend Developer
         </span>
 
         {/* 구분선 */}
@@ -26,7 +26,7 @@ export default function Home() {
 
         {/* 소개글 */}
         <p className="text-base leading-relaxed text-zinc-600 dark:text-zinc-300 break-keep">
-          안녕하세요! 바이브 코딩을 배우고 있는 대학생입니다.
+          사용자 경험과 문제 해결에 몰입하는 프론트엔드 개발자입니다. 아이디어를 코드로 구현하고, 지속 가능한 성장을 지향합니다.
         </p>
       </div>
     </main>
