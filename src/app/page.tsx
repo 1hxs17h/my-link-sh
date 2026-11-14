@@ -12,7 +12,7 @@ import { Footer } from "@/components/profile/Footer";
 import { GoogleIcon } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { getCreatedAtMillis } from "@/lib/links";
-import { Lock, Loader2, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 
 const emptySubscribe = () => () => {};
 
@@ -30,7 +30,6 @@ export default function Home() {
     if (typeof window !== "undefined") {
       localStorage.removeItem("mylink-storage");
     }
-    // onAuthStateChanged 기반 인증 상태 감지 초기화
     initAuth();
   }, [initAuth]);
 
@@ -93,52 +92,30 @@ export default function Home() {
               ))}
             </div>
           ) : !user ? (
-            // 로그아웃 상태: 로그인 후 사용할 수 있도록 안내하는 설명 화면
-            <div className="rounded-2xl border border-border/70 bg-white p-6 shadow-xs text-center space-y-5 animate-in fade-in duration-300">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
-                <Lock className="w-7 h-7 stroke-[1.8]" />
+            // 로그아웃 상태: 정제된 TDS 스타일의 로그인 안내 카드
+            <div className="rounded-2xl border border-border bg-white p-8 text-center flex flex-col items-center">
+              <div className="size-11 rounded-full bg-muted flex items-center justify-center mb-3.5 text-muted-foreground">
+                <Lock className="size-5 text-foreground/75" />
               </div>
 
-              <div className="space-y-1.5">
-                <h2 className="text-base font-bold text-foreground tracking-tight">
-                  로그인 후 나만의 링크를 관리해보세요
-                </h2>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Google 계정으로 로그인하시면 나만의 개인 링크를
-                  <br />
-                  자유롭게 등록하고 실시간으로 관리할 수 있어요.
-                </p>
-              </div>
-
-              {/* 기능 안내 카드 */}
-              <div className="bg-slate-50/80 rounded-xl p-3.5 text-left space-y-2.5 border border-slate-100">
-                <div className="flex items-center gap-2.5 text-xs text-slate-700">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span className="font-medium">나만의 링크 모음 프로필 생성</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-xs text-slate-700">
-                  <Zap className="w-4 h-4 text-blue-500 shrink-0" />
-                  <span className="font-medium">실시간 링크 추가 · 수정 · 삭제</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-xs text-slate-700">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span className="font-medium">Google 계정 기반의 안전한 개인화 보관</span>
-                </div>
-              </div>
+              <h2 className="text-base font-bold text-foreground mb-1.5 tracking-tight">
+                로그인 후 링크를 관리할 수 있어요
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-[260px] mb-6">
+                Google 계정으로 로그인하면 나만의 링크를 등록하고 언제든지 수정할 수 있어요.
+              </p>
 
               <Button
                 onClick={handleLogin}
                 disabled={isLoggingIn}
-                className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 shadow-xs hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer"
+                className="w-full max-w-[260px] h-10 rounded-xl bg-primary text-primary-foreground font-medium text-xs flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
               >
                 {isLoggingIn ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
                   <>
-                    <div className="bg-white rounded-full p-1 flex items-center justify-center">
-                      <GoogleIcon className="size-3.5" />
-                    </div>
-                    <span>Google로 로그인하고 시작하기</span>
+                    <GoogleIcon className="size-3.5" />
+                    <span>Google로 계속하기</span>
                   </>
                 )}
               </Button>
@@ -167,13 +144,12 @@ export default function Home() {
                   ))}
                 </div>
               ) : sortedBlocks.length === 0 ? (
-                <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-border/80 bg-white/60 space-y-2">
-                  <div className="text-3xl mb-1">🔗</div>
+                <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-border bg-white space-y-1">
                   <p className="font-semibold text-foreground text-sm">
                     등록된 링크가 아직 없어요
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    상단의 &apos;새 링크 추가&apos; 버튼을 눌러 첫 번째 링크를 등록해보세요!
+                    상단의 &apos;새 링크 추가&apos; 버튼을 눌러 링크를 등록해 보세요.
                   </p>
                 </div>
               ) : (
