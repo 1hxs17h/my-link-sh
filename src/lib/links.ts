@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 import { LinkBlock, BlockType, AddBlockInput } from "@/types/mylink";
 
 /**
- * 다양한 형태(Firestore Timestamp, Date, 문자열, 숫자 등)의 createdAt 값을
+ * 다양한 형태(Firestore Timestamp, Date, 문자열, 숫자 등)의 createdAt/updatedAt 값을
  * 밀리초(ms) 단위의 타임스탬프 숫자로 통일하여 반환합니다.
  */
 export function getCreatedAtMillis(createdAt: unknown): number {
@@ -63,6 +63,23 @@ export function getCreatedAtMillis(createdAt: unknown): number {
 }
 
 /**
+ * 타임스탬프 값을 읽기 쉬운 한국 날짜 및 시간 포맷(YYYY.MM.DD HH:mm) 문자열로 변환합니다.
+ */
+export function formatDateTime(timestamp: unknown): string | null {
+  const millis = getCreatedAtMillis(timestamp);
+  if (!millis) return null;
+
+  const date = new Date(millis);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}.${month}.${day} ${hours}:${minutes}`;
+}
+
+/**
  * Firestore 문서 스냅샷 배열을 LinkBlock 배열로 변환하고 createdAt 최신순(내림차순)으로 정렬합니다.
  */
 function mapAndSortSnapshotDocs(docs: QueryDocumentSnapshot<DocumentData>[]): LinkBlock[] {
@@ -77,6 +94,7 @@ function mapAndSortSnapshotDocs(docs: QueryDocumentSnapshot<DocumentData>[]): Li
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
       order: typeof data.order === "number" ? data.order : index,
       createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
     };
   });
 

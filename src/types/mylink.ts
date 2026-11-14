@@ -11,6 +11,7 @@ export interface LinkBlock {
   isActive: boolean;   // 노출 여부 (Phase 1에서는 true인 것만 렌더링)
   order: number;       // 표시 순서
   createdAt?: unknown;     // 생성일시 (Firestore Timestamp 또는 Date 등)
+  updatedAt?: unknown;     // 수정일시 (Firestore Timestamp 또는 Date 등)
 }
 
 // 새 블록 추가 입력 형태

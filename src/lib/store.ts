@@ -103,6 +103,7 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
               ? input.description.trim() || undefined
               : block.description,
           isActive: input.isActive !== undefined ? input.isActive : block.isActive,
+          updatedAt: new Date(),
         };
       }),
     }));

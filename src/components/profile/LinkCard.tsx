@@ -11,6 +11,7 @@ import { linkFormSchema, type LinkFormValues } from "@/lib/validations/link";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DeleteLinkModal } from "./DeleteLinkModal";
+import { formatDateTime } from "@/lib/links";
 import { Pencil, Trash2, Loader2, ExternalLink, Check, X } from "lucide-react";
 import { cn } from "cn";
 
@@ -39,6 +40,8 @@ export function LinkCard({ block }: { block: LinkBlock }) {
 
   const titleValue = useWatch({ control, name: "title" }) || "";
   const descValue = useWatch({ control, name: "description" }) || "";
+
+  const updatedAtFormatted = formatDateTime(block.updatedAt);
 
   if (block.type !== "link" || !block.isActive || !block.url) return null;
 
@@ -247,6 +250,11 @@ export function LinkCard({ block }: { block: LinkBlock }) {
                 {block.description && (
                   <span className="text-xs sm:text-sm text-muted-foreground truncate">
                     {block.description}
+                  </span>
+                )}
+                {updatedAtFormatted && (
+                  <span className="text-[11px] text-muted-foreground/60 font-normal">
+                    수정됨 {updatedAtFormatted}
                   </span>
                 )}
               </div>
