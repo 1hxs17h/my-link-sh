@@ -10,6 +10,7 @@ export interface LinkBlock {
   description?: string;// 부가 설명 문구 (선택)
   isActive: boolean;   // 노출 여부 (Phase 1에서는 true인 것만 렌더링)
   order: number;       // 표시 순서
+  createdAt?: unknown;     // 생성일시 (Firestore Timestamp 또는 Date 등)
 }
 
 // 새 블록 추가 입력 형태
@@ -19,6 +20,8 @@ export interface AddBlockInput {
   url?: string;
   description?: string;
   isActive?: boolean;
+  order?: number;
+  createdAt?: unknown;
 }
 
 // 소셜 미디어 링크 모음

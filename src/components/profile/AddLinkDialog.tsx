@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Plus, Loader2 } from "lucide-react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMyLinkStore } from "@/lib/store";
 import { linkFormSchema, type LinkFormValues } from "@/lib/validations/link";
@@ -22,13 +22,14 @@ import { Label } from "@/components/ui/label";
 
 export function AddLinkDialog() {
   const [open, setOpen] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const addBlock = useMyLinkStore((state) => state.addBlock);
 
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
-    watch,
     reset,
   } = useForm<LinkFormValues>({
     resolver: zodResolver(linkFormSchema),
@@ -40,31 +41,39 @@ export function AddLinkDialog() {
     },
   });
 
-  const titleValue = watch("title") || "";
-  const descValue = watch("description") || "";
+  const titleValue = useWatch({ control, name: "title" }) || "";
+  const descValue = useWatch({ control, name: "description" }) || "";
 
-  const onSubmit = (data: LinkFormValues) => {
-    let formattedUrl = data.url.trim();
-    if (!/^https?:\/\//i.test(formattedUrl) && !/^mailto:/i.test(formattedUrl)) {
-      formattedUrl = `https://${formattedUrl}`;
+  const onSubmit = async (data: LinkFormValues) => {
+    try {
+      setSubmitError(null);
+      let formattedUrl = data.url.trim();
+      if (!/^https?:\/\//i.test(formattedUrl) && !/^mailto:/i.test(formattedUrl)) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+
+      await addBlock({
+        type: "link",
+        title: data.title.trim(),
+        url: formattedUrl,
+        description: data.description?.trim() || undefined,
+        isActive: true,
+      });
+
+      reset();
+      setOpen(false);
+    } catch (error) {
+      console.error("링크 추가 중 오류가 발생했습니다:", error);
+      setSubmitError("링크를 저장하는 중 오류가 발생했습니다. 다시 시도해주세요.");
     }
-
-    addBlock({
-      type: "link",
-      title: data.title.trim(),
-      url: formattedUrl,
-      description: data.description?.trim() || undefined,
-      isActive: true,
-    });
-
-    reset();
-    setOpen(false);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
+    if (isSubmitting) return;
     setOpen(nextOpen);
     if (!nextOpen) {
       reset();
+      setSubmitError(null);
     }
   };
 
@@ -194,6 +203,13 @@ export function AddLinkDialog() {
                 </p>
               )}
             </div>
+
+            {/* 저장 에러 메시지 */}
+            {submitError && (
+              <div className="p-3 text-xs font-medium text-destructive bg-destructive/10 rounded-xl animate-in fade-in-50">
+                {submitError}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
@@ -201,6 +217,7 @@ export function AddLinkDialog() {
               type="button"
               variant="secondary"
               onClick={() => handleOpenChange(false)}
+              disabled={isSubmitting}
               className="h-11 rounded-xl font-medium"
             >
               취소
@@ -208,9 +225,16 @@ export function AddLinkDialog() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+              className="h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground min-w-[88px]"
             >
-              추가하기
+              {isSubmitting ? (
+                <span className="flex items-center gap-1.5">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  추가 중...
+                </span>
+              ) : (
+                "추가하기"
+              )}
             </Button>
           </DialogFooter>
         </form>
