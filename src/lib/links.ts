@@ -107,10 +107,11 @@ function mapAndSortSnapshotDocs(docs: QueryDocumentSnapshot<DocumentData>[]): Li
 }
 
 /**
- * Firestore 경로 `users/anonymous/links`에서 createdAt 기준 최신순(내림차순)으로 링크 목록을 불러옵니다.
+ * Firestore 경로 `users/{userId}/links`에서 createdAt 기준 최신순(내림차순)으로 링크 목록을 불러옵니다.
  */
-export async function getAnonymousLinks(): Promise<LinkBlock[]> {
-  const linksRef = collection(db, "users", "anonymous", "links");
+export async function getUserLinks(userId: string = "anonymous"): Promise<LinkBlock[]> {
+  if (!userId) return [];
+  const linksRef = collection(db, "users", userId, "links");
 
   try {
     // 1차 시도: createdAt 기준 최신순(내림차순) 정렬 쿼리
@@ -128,25 +129,34 @@ export async function getAnonymousLinks(): Promise<LinkBlock[]> {
 
     return links;
   } catch (error) {
-    console.warn("orderBy('createdAt') 쿼리 실패, 전체 컬렉션 폴백으로 조회합니다:", error);
+    console.warn(`orderBy('createdAt') 쿼리 실패, 전체 컬렉션 폴백으로 조회합니다 (users/${userId}/links):`, error);
     try {
       const fallbackSnapshot = await getDocs(linksRef);
       return mapAndSortSnapshotDocs(fallbackSnapshot.docs);
     } catch (fallbackError) {
-      console.error("Firestore 링크 불러오기 최종 실패 (users/anonymous/links):", fallbackError);
+      console.error(`Firestore 링크 불러오기 최종 실패 (users/${userId}/links):`, fallbackError);
       throw fallbackError;
     }
   }
 }
 
 /**
- * 새 링크를 Firestore 경로 `users/anonymous/links` 컬렉션에 추가하여 저장합니다.
+ * Firestore 경로 `users/anonymous/links`에서 createdAt 기준 최신순(내림차순)으로 링크 목록을 불러옵니다.
  */
-export async function addAnonymousLink(
+export async function getAnonymousLinks(): Promise<LinkBlock[]> {
+  return getUserLinks("anonymous");
+}
+
+/**
+ * 새 링크를 Firestore 경로 `users/{userId}/links` 컬렉션에 추가하여 저장합니다.
+ */
+export async function addUserLink(
+  userId: string,
   input: Omit<AddBlockInput, "createdAt"> & { order?: number }
 ): Promise<LinkBlock> {
+  if (!userId) throw new Error("사용자 식별자(userId)가 필요합니다.");
   try {
-    const linksRef = collection(db, "users", "anonymous", "links");
+    const linksRef = collection(db, "users", userId, "links");
 
     const newLinkData: {
       type: BlockType;
@@ -182,15 +192,25 @@ export async function addAnonymousLink(
       createdAt: Timestamp.now(),
     };
   } catch (error) {
-    console.error("Firestore 링크 저장 실패 (users/anonymous/links):", error);
+    console.error(`Firestore 링크 저장 실패 (users/${userId}/links):`, error);
     throw error;
   }
 }
 
 /**
- * Firestore 경로 `users/anonymous/links/{id}` 문서를 수정합니다.
+ * 새 링크를 Firestore 경로 `users/anonymous/links` 컬렉션에 추가하여 저장합니다.
  */
-export async function updateAnonymousLink(
+export async function addAnonymousLink(
+  input: Omit<AddBlockInput, "createdAt"> & { order?: number }
+): Promise<LinkBlock> {
+  return addUserLink("anonymous", input);
+}
+
+/**
+ * Firestore 경로 `users/{userId}/links/{id}` 문서를 수정합니다.
+ */
+export async function updateUserLink(
+  userId: string,
   id: string,
   input: {
     title?: string;
@@ -200,8 +220,9 @@ export async function updateAnonymousLink(
     order?: number;
   }
 ): Promise<void> {
+  if (!userId) throw new Error("사용자 식별자(userId)가 필요합니다.");
   try {
-    const linkDocRef = doc(db, "users", "anonymous", "links", id);
+    const linkDocRef = doc(db, "users", userId, "links", id);
     const updateData: Record<string, unknown> = {
       updatedAt: serverTimestamp(),
     };
@@ -225,7 +246,37 @@ export async function updateAnonymousLink(
 
     await updateDoc(linkDocRef, updateData);
   } catch (error) {
-    console.error(`Firestore 링크 수정 실패 (users/anonymous/links/${id}):`, error);
+    console.error(`Firestore 링크 수정 실패 (users/${userId}/links/${id}):`, error);
+    throw error;
+  }
+}
+
+/**
+ * Firestore 경로 `users/anonymous/links/{id}` 문서를 수정합니다.
+ */
+export async function updateAnonymousLink(
+  id: string,
+  input: {
+    title?: string;
+    url?: string;
+    description?: string;
+    isActive?: boolean;
+    order?: number;
+  }
+): Promise<void> {
+  return updateUserLink("anonymous", id, input);
+}
+
+/**
+ * Firestore 경로 `users/{userId}/links/{id}` 문서를 삭제합니다.
+ */
+export async function deleteUserLink(userId: string, id: string): Promise<void> {
+  if (!userId) throw new Error("사용자 식별자(userId)가 필요합니다.");
+  try {
+    const linkDocRef = doc(db, "users", userId, "links", id);
+    await deleteDoc(linkDocRef);
+  } catch (error) {
+    console.error(`Firestore 링크 삭제 실패 (users/${userId}/links/${id}):`, error);
     throw error;
   }
 }
@@ -234,11 +285,5 @@ export async function updateAnonymousLink(
  * Firestore 경로 `users/anonymous/links/{id}` 문서를 삭제합니다.
  */
 export async function deleteAnonymousLink(id: string): Promise<void> {
-  try {
-    const linkDocRef = doc(db, "users", "anonymous", "links", id);
-    await deleteDoc(linkDocRef);
-  } catch (error) {
-    console.error(`Firestore 링크 삭제 실패 (users/anonymous/links/${id}):`, error);
-    throw error;
-  }
+  return deleteUserLink("anonymous", id);
 }
