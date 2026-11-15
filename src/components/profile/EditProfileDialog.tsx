@@ -63,7 +63,6 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
     mode: "onBlur",
     defaultValues: {
       username: profile.username || "",
-      name: profile.name || "",
       bio: profile.bio || "",
     },
   });
@@ -71,18 +70,15 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
   const isBusy = isSubmitting || isSavingProfile;
 
   const currentUsernameInput = useWatch({ control, name: "username" }) || "";
-  const currentNameInput = useWatch({ control, name: "name" }) || "";
   const currentBioInput = useWatch({ control, name: "bio" }) || "";
 
   // 기존 프로필 정보와 비교하여 실제 변경된 사항이 있는지 확인
   const isUsernameChanged =
     currentUsernameInput.trim().toLowerCase() !==
     (profile.username || "").trim().toLowerCase();
-  const isNameChanged =
-    currentNameInput.trim() !== (profile.name || "").trim();
   const isBioChanged =
     (currentBioInput || "").trim() !== (profile.bio || "").trim();
-  const hasChanges = isUsernameChanged || isNameChanged || isBioChanged;
+  const hasChanges = isUsernameChanged || isBioChanged;
 
   // 다이얼로그가 열릴 때 현재 프로필 데이터로 폼 초기화
   useEffect(() => {
@@ -90,7 +86,6 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
       const initialUsername = profile.username || "";
       reset({
         username: initialUsername,
-        name: profile.name || "",
         bio: profile.bio || "",
       });
       startTransition(() => {
@@ -203,7 +198,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
 
       await updateProfileMutation({
         username: data.username.trim(),
-        name: data.name.trim(),
+        name: profile.name,
         bio: data.bio?.trim() || "",
       });
 
@@ -344,41 +339,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
             )}
           </div>
 
-          {/* 2. 이름 필드 */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label
-                htmlFor="name"
-                className="text-xs font-semibold text-foreground flex items-center gap-1"
-              >
-                <span>이름</span>
-                <span className="text-primary">*</span>
-              </Label>
-              <span className="text-[11px] text-muted-foreground">
-                {currentNameInput.length}/30자
-              </span>
-            </div>
-
-            <Input
-              id="name"
-              placeholder="표시될 이름을 입력해주세요"
-              maxLength={30}
-              {...register("name")}
-              disabled={isBusy}
-              className={cn(
-                "h-10 rounded-xl text-sm border-border bg-muted/20 focus-visible:bg-white transition-all",
-                errors.name && "border-destructive focus-visible:ring-destructive/20"
-              )}
-            />
-            {errors.name && (
-              <p className="text-[11px] text-destructive flex items-center gap-1 mt-1 font-medium">
-                <AlertCircle className="size-3 shrink-0" />
-                <span>{errors.name.message}</span>
-              </p>
-            )}
-          </div>
-
-          {/* 3. 소개글 필드 */}
+          {/* 2. 소개글 필드 */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label

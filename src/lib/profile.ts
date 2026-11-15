@@ -195,7 +195,7 @@ export async function updateUserProfile(
   }
 
   const normalizedUsername = input.username.trim().toLowerCase();
-  const trimmedName = input.name.trim();
+  const trimmedName = (input.name !== undefined ? input.name : currentProfile?.name || "").trim();
   const trimmedBio = input.bio.trim();
 
   const prevUsername = currentProfile?.username?.trim().toLowerCase() || "";

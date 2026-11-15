@@ -49,6 +49,6 @@ export interface ProfileData {
 // 프로필 수정 폼 입력 형태
 export interface UpdateProfileInput {
   username: string;
-  name: string;
+  name?: string;
   bio: string;
 }

@@ -102,11 +102,12 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
     }
 
     const currentProfile = get().profile;
+    const currentName = currentProfile.name || "";
+    const nextName = input.name !== undefined ? input.name.trim() : currentName;
     const isUsernameChanged =
       input.username.trim().toLowerCase() !==
       (currentProfile.username || "").trim().toLowerCase();
-    const isNameChanged =
-      input.name.trim() !== (currentProfile.name || "").trim();
+    const isNameChanged = nextName !== currentName;
     const isBioChanged =
       (input.bio || "").trim() !== (currentProfile.bio || "").trim();
 
@@ -127,7 +128,7 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
       profile: {
         ...state.profile,
         username: input.username.trim().toLowerCase(),
-        name: input.name.trim(),
+        name: nextName,
         bio: input.bio.trim(),
       },
     }));

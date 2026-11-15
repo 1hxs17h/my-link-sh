@@ -97,7 +97,7 @@ export function useUpdateProfile(userId?: string) {
       const optimisticProfile: ProfileData = {
         ...previousProfile,
         username: newInput.username.trim().toLowerCase(),
-        name: newInput.name.trim(),
+        name: newInput.name !== undefined ? newInput.name.trim() : previousProfile.name,
         bio: newInput.bio.trim(),
       };
 
