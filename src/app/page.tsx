@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useMyLinkStore } from "@/lib/store";
+import { useLinks } from "@/hooks/useLinks";
+import { useProfile } from "@/hooks/useProfile";
 import { loginWithGoogle } from "@/lib/auth";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { SocialLinksBar } from "@/components/profile/SocialLinksBar";
@@ -17,8 +19,9 @@ import { Lock, Loader2 } from "lucide-react";
 const emptySubscribe = () => () => {};
 
 export default function Home() {
-  const { profile, blocks, isLoading, user, authLoading, initAuth } =
-    useMyLinkStore();
+  const { user, authLoading, initAuth } = useMyLinkStore();
+  const { profile } = useProfile(user);
+  const { blocks, isLoading } = useLinks(user?.uid);
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,

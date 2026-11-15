@@ -1,6 +1,8 @@
 "use client";
 
 import { useMyLinkStore } from "@/lib/store";
+import { useProfile } from "@/hooks/useProfile";
+import { useLinks } from "@/hooks/useLinks";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,9 @@ interface PreviewModalProps {
 }
 
 export function PreviewModal({ open, onOpenChange }: PreviewModalProps) {
-  const { profile, blocks } = useMyLinkStore();
+  const user = useMyLinkStore((state) => state.user);
+  const { profile } = useProfile(user);
+  const { blocks } = useLinks(user?.uid);
   const [copied, setCopied] = useState(false);
 
   const activeBlocks = [...blocks]

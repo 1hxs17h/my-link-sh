@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { LinkBlock } from "@/types/mylink";
 import { useMyLinkStore } from "@/lib/store";
+import { useDeleteLink } from "@/hooks/useLinks";
 import {
   Dialog,
   DialogContent,
@@ -25,21 +26,18 @@ export function DeleteLinkModal({
   onOpenChange,
   link,
 }: DeleteLinkModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const deleteBlock = useMyLinkStore((state) => state.deleteBlock);
+  const user = useMyLinkStore((state) => state.user);
+  const { mutateAsync: deleteLink, isPending: isDeleting } = useDeleteLink(user?.uid);
 
   const handleDelete = async () => {
     try {
-      setIsDeleting(true);
       setErrorMessage(null);
-      await deleteBlock(link.id);
+      await deleteLink(link.id);
       onOpenChange(false);
     } catch (error) {
       console.error("링크 삭제 실패:", error);
       setErrorMessage("삭제 중 오류가 발생했습니다. 다시 시도해주세요.");
-    } finally {
-      setIsDeleting(false);
     }
   };
 

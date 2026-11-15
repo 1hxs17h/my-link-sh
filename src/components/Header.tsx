@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMyLinkStore } from "@/lib/store";
+import { useProfile } from "@/hooks/useProfile";
 import { loginWithGoogle, logout } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,7 +44,8 @@ export function GoogleIcon({ className = "size-3.5" }: { className?: string }) {
 }
 
 export function Header() {
-  const { user, profile, authLoading, initAuth } = useMyLinkStore();
+  const { user, authLoading, initAuth } = useMyLinkStore();
+  const { profile } = useProfile(user);
   const [isProcessing, setIsProcessing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);

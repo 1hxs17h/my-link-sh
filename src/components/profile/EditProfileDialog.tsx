@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useMyLinkStore } from "@/lib/store";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import {
   profileFormSchema,
   type ProfileFormValues,
@@ -30,7 +31,10 @@ interface EditProfileDialogProps {
 }
 
 export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps) {
-  const { user, profile, updateProfile } = useMyLinkStore();
+  const user = useMyLinkStore((state) => state.user);
+  const { profile } = useProfile(user);
+  const { mutateAsync: updateProfileMutation, isPending: isSavingProfile } =
+    useUpdateProfile(user?.uid);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // username 중복 확인 관련 상태
@@ -50,7 +54,6 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
     register,
     handleSubmit,
     control,
-    setValue,
     setError,
     clearErrors,
     formState: { errors, isSubmitting },
@@ -64,6 +67,8 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
       bio: profile.bio || "",
     },
   });
+
+  const isBusy = isSubmitting || isSavingProfile;
 
   const currentUsernameInput = useWatch({ control, name: "username" }) || "";
   const currentNameInput = useWatch({ control, name: "name" }) || "";
@@ -88,39 +93,25 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
         name: profile.name || "",
         bio: profile.bio || "",
       });
-      setSubmitError(null);
-      // 기존 본인 username과 같다면 이미 확인된 것으로 간주
-      if (initialUsername) {
-        setUsernameCheckStatus({
-          checked: true,
-          available: true,
-          message: "현재 사용 중인 사용자 이름이에요.",
-          testedUsername: initialUsername.toLowerCase(),
-        });
-      } else {
-        setUsernameCheckStatus({
-          checked: false,
-          available: false,
-          message: "",
-        });
-      }
-    }
-  }, [open, profile, reset]);
-
-  // 사용자가 username 입력을 변경하면 중복 확인 상태 초기화
-  useEffect(() => {
-    const normalizedInput = currentUsernameInput.trim().toLowerCase();
-    if (
-      usernameCheckStatus.testedUsername &&
-      normalizedInput !== usernameCheckStatus.testedUsername
-    ) {
-      setUsernameCheckStatus({
-        checked: false,
-        available: false,
-        message: "",
+      startTransition(() => {
+        setSubmitError(null);
+        if (initialUsername) {
+          setUsernameCheckStatus({
+            checked: true,
+            available: true,
+            message: "현재 사용 중인 사용자 이름이에요.",
+            testedUsername: initialUsername.toLowerCase(),
+          });
+        } else {
+          setUsernameCheckStatus({
+            checked: false,
+            available: false,
+            message: "",
+          });
+        }
       });
     }
-  }, [currentUsernameInput, usernameCheckStatus.testedUsername]);
+  }, [open, profile, reset]);
 
   // 중복 확인 버튼 클릭 핸들러
   const handleCheckUsername = async () => {
@@ -210,7 +201,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
         }
       }
 
-      await updateProfile({
+      await updateProfileMutation({
         username: data.username.trim(),
         name: data.name.trim(),
         bio: data.bio?.trim() || "",
@@ -232,6 +223,12 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
     usernameCheckStatus.available &&
     usernameCheckStatus.testedUsername ===
       currentUsernameInput.trim().toLowerCase();
+
+  const activeCheckStatus =
+    usernameCheckStatus.testedUsername ===
+    currentUsernameInput.trim().toLowerCase()
+      ? usernameCheckStatus
+      : { checked: false, available: false, message: "" };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -277,7 +274,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
                   id="username"
                   placeholder="username"
                   {...register("username")}
-                  disabled={isSubmitting}
+                  disabled={isBusy}
                   className={cn(
                     "h-10 pl-7 rounded-xl text-sm border-border bg-muted/20 focus-visible:bg-white transition-all",
                     errors.username && "border-destructive focus-visible:ring-destructive/20",
@@ -293,7 +290,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
                 variant="outline"
                 onClick={handleCheckUsername}
                 disabled={
-                  isSubmitting ||
+                  isBusy ||
                   isCheckingUsername ||
                   !currentUsernameInput.trim() ||
                   isCurrentUsernameVerified
@@ -324,21 +321,21 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
                 <AlertCircle className="size-3 shrink-0" />
                 <span>{errors.username.message}</span>
               </p>
-            ) : usernameCheckStatus.checked ? (
+            ) : activeCheckStatus.checked ? (
               <p
                 className={cn(
                   "text-[11px] flex items-center gap-1 mt-1 font-medium",
-                  usernameCheckStatus.available
+                  activeCheckStatus.available
                     ? "text-emerald-600"
                     : "text-destructive"
                 )}
               >
-                {usernameCheckStatus.available ? (
+                {activeCheckStatus.available ? (
                   <CheckCircle2 className="size-3 shrink-0" />
                 ) : (
                   <AlertCircle className="size-3 shrink-0" />
                 )}
-                <span>{usernameCheckStatus.message}</span>
+                <span>{activeCheckStatus.message}</span>
               </p>
             ) : (
               <p className="text-[11px] text-muted-foreground">
@@ -367,7 +364,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               placeholder="표시될 이름을 입력해주세요"
               maxLength={30}
               {...register("name")}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className={cn(
                 "h-10 rounded-xl text-sm border-border bg-muted/20 focus-visible:bg-white transition-all",
                 errors.name && "border-destructive focus-visible:ring-destructive/20"
@@ -406,7 +403,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               rows={4}
               maxLength={200}
               {...register("bio")}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className={cn(
                 "rounded-xl text-sm border-border bg-muted/20 focus-visible:bg-white transition-all leading-relaxed",
                 errors.bio && "border-destructive focus-visible:ring-destructive/20"
@@ -429,7 +426,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className="h-10 px-4 rounded-xl text-xs font-medium border-border cursor-pointer shadow-none hover:bg-muted/70"
             >
               취소
@@ -438,11 +435,11 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
               type="submit"
               disabled={
                 !hasChanges ||
-                isSubmitting ||
+                isBusy ||
                 isCheckingUsername ||
                 (isUsernameChanged &&
-                  usernameCheckStatus.checked &&
-                  !usernameCheckStatus.available)
+                  activeCheckStatus.checked &&
+                  !activeCheckStatus.available)
               }
               className={cn(
                 "h-10 px-5 rounded-xl text-xs font-medium cursor-pointer shadow-xs transition-all flex items-center gap-1.5",
@@ -451,7 +448,7 @@ export function EditProfileDialog({ open, onOpenChange }: EditProfileDialogProps
                   : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
               )}
             >
-              {isSubmitting ? (
+              {isBusy ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
                   <span>저장 중...</span>

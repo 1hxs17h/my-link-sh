@@ -5,6 +5,7 @@ import { Plus, Loader2 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMyLinkStore } from "@/lib/store";
+import { useAddLink } from "@/hooks/useLinks";
 import { linkFormSchema, type LinkFormValues } from "@/lib/validations/link";
 import { cn } from "cn";
 import {
@@ -23,7 +24,8 @@ import { Label } from "@/components/ui/label";
 export function AddLinkDialog() {
   const [open, setOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const addBlock = useMyLinkStore((state) => state.addBlock);
+  const user = useMyLinkStore((state) => state.user);
+  const { mutateAsync: addLink, isPending: isAdding } = useAddLink(user?.uid);
 
   const {
     register,
@@ -52,7 +54,7 @@ export function AddLinkDialog() {
         formattedUrl = `https://${formattedUrl}`;
       }
 
-      await addBlock({
+      await addLink({
         type: "link",
         title: data.title.trim(),
         url: formattedUrl,
@@ -68,8 +70,10 @@ export function AddLinkDialog() {
     }
   };
 
+  const isBusy = isSubmitting || isAdding;
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (isSubmitting) return;
+    if (isBusy) return;
     setOpen(nextOpen);
     if (!nextOpen) {
       reset();
@@ -217,17 +221,17 @@ export function AddLinkDialog() {
               type="button"
               variant="secondary"
               onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
+              disabled={isBusy}
               className="h-11 rounded-xl font-medium"
             >
               취소
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isBusy}
               className="h-11 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground min-w-[88px]"
             >
-              {isSubmitting ? (
+              {isBusy ? (
                 <span className="flex items-center gap-1.5">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   추가 중...

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMyLinkStore } from "@/lib/store";
+import { useUpdateLink } from "@/hooks/useLinks";
 import { linkFormSchema, type LinkFormValues } from "@/lib/validations/link";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +21,8 @@ export function LinkCard({ block }: { block: LinkBlock }) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const updateBlock = useMyLinkStore((state) => state.updateBlock);
+  const user = useMyLinkStore((state) => state.user);
+  const { mutateAsync: updateLink, isPending: isUpdating } = useUpdateLink(user?.uid);
 
   const {
     register,
@@ -37,6 +39,8 @@ export function LinkCard({ block }: { block: LinkBlock }) {
       description: block.description || "",
     },
   });
+
+  const isBusy = isSubmitting || isUpdating;
 
   const titleValue = useWatch({ control, name: "title" }) || "";
   const descValue = useWatch({ control, name: "description" }) || "";
@@ -65,10 +69,13 @@ export function LinkCard({ block }: { block: LinkBlock }) {
         formattedUrl = `https://${formattedUrl}`;
       }
 
-      await updateBlock(block.id, {
-        title: data.title.trim(),
-        url: formattedUrl,
-        description: data.description?.trim() || undefined,
+      await updateLink({
+        id: block.id,
+        input: {
+          title: data.title.trim(),
+          url: formattedUrl,
+          description: data.description?.trim() || undefined,
+        },
       });
 
       setIsEditing(false);
@@ -97,7 +104,7 @@ export function LinkCard({ block }: { block: LinkBlock }) {
               <button
                 type="button"
                 onClick={handleCancel}
-                disabled={isSubmitting}
+                disabled={isBusy}
                 className="text-muted-foreground hover:text-foreground text-xs p-1 rounded-md transition-colors"
                 title="수정 취소"
               >
@@ -208,7 +215,7 @@ export function LinkCard({ block }: { block: LinkBlock }) {
                 variant="secondary"
                 size="sm"
                 onClick={handleCancel}
-                disabled={isSubmitting}
+                disabled={isBusy}
                 className="h-9 px-3.5 rounded-xl font-medium text-xs"
               >
                 취소
@@ -216,10 +223,10 @@ export function LinkCard({ block }: { block: LinkBlock }) {
               <Button
                 type="submit"
                 size="sm"
-                disabled={isSubmitting}
+                disabled={isBusy}
                 className="h-9 px-4 rounded-xl font-semibold text-xs bg-primary hover:bg-primary/90 text-primary-foreground min-w-[76px]"
               >
-                {isSubmitting ? (
+                {isBusy ? (
                   <span className="flex items-center gap-1.5">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     저장 중...

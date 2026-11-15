@@ -271,13 +271,7 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
       get().setUser(user);
       set({ authLoading: false });
 
-      if (user) {
-        // 로그인 상태: links 및 profile 병렬 로드
-        await Promise.all([
-          get().fetchBlocks(user.uid),
-          get().fetchProfile(user.uid),
-        ]);
-      } else {
+      if (!user) {
         // 로그아웃 상태: blocks 및 profile 초기화
         set({ blocks: [], profile: DUMMY_PROFILE, isLoading: false });
       }
