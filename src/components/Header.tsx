@@ -18,6 +18,7 @@ import {
   UserPen,
   ExternalLink,
   Globe,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
@@ -274,6 +275,16 @@ export function Header() {
                             </span>
                           </div>
                         </button>
+
+                        {/* 5. 통계 페이지 */}
+                        <Link
+                          href="/stats"
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                        >
+                          <BarChart3 className="size-4 text-muted-foreground" />
+                          <span>링크 통계</span>
+                        </Link>
                       </div>
 
                     <div className="h-px bg-border my-1" />
