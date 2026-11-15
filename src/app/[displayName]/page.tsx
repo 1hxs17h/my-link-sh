@@ -5,6 +5,10 @@ interface PageProps {
   params: Promise<{ displayName: string }>;
 }
 
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
