@@ -16,6 +16,8 @@ import {
   Check,
   LogOut,
   UserPen,
+  ExternalLink,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
@@ -106,11 +108,29 @@ export function Header() {
     }
   };
 
+  // 디스플레이 네임: 프로필 이름 또는 이메일 앞부분(아이디) 우선 사용
+  const displayName =
+    profile.name ||
+    (user?.email ? user.email.split("@")[0] : user?.displayName || "홍길동");
+
+  // 개인별 페이지 경로: username 우선, 없을 경우 email 아이디 또는 uid
+  const usernameSlug =
+    profile.username ||
+    (user?.email
+      ? user.email.split("@")[0].replace(/[^a-zA-Z0-9._-]/g, "")
+      : user?.displayName) ||
+    "";
+  const personalPageUrl = usernameSlug
+    ? `/${encodeURIComponent(usernameSlug)}`
+    : "/";
+
   // 내 링크 복사
   const handleCopyLink = async () => {
     try {
-      const shareUrl =
+      const origin =
         typeof window !== "undefined" ? window.location.origin : "";
+      const shareUrl =
+        personalPageUrl !== "/" ? `${origin}${personalPageUrl}` : origin;
       await navigator.clipboard.writeText(shareUrl);
       setIsCopied(true);
       setTimeout(() => {
@@ -120,11 +140,6 @@ export function Header() {
       console.error("링크 복사 실패:", err);
     }
   };
-
-  // 디스플레이 네임: 프로필 이름 또는 이메일 앞부분(아이디) 우선 사용
-  const displayName =
-    profile.name ||
-    (user?.email ? user.email.split("@")[0] : user?.displayName || "홍길동");
 
   return (
     <>
@@ -141,102 +156,125 @@ export function Header() {
             {authLoading ? (
               <div className="h-8 w-20 bg-muted rounded-lg animate-pulse" />
             ) : user ? (
-              /* 프로필 클릭 시 드롭다운 */
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                  className="h-9 px-2 rounded-full flex items-center gap-1.5 hover:bg-muted/70 active:bg-muted transition-colors cursor-pointer select-none"
-                  aria-expanded={dropdownOpen}
-                  aria-haspopup="true"
+              <div className="flex items-center gap-1.5">
+                {/* 헤더 바: 개인별 페이지 바로가기 버튼 */}
+                <Link
+                  href={personalPageUrl}
+                  className="h-8 px-2.5 rounded-full flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/70 active:bg-muted transition-colors"
+                  title="내 개인 페이지로 이동"
                 >
-                  <Avatar className="size-7 border border-border">
-                    <AvatarImage
-                      src={user.photoURL || undefined}
-                      alt={displayName}
-                    />
-                    <AvatarFallback className="text-[11px] font-semibold text-muted-foreground bg-muted">
-                      {displayName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-foreground max-w-[110px] truncate">
-                    {displayName}님
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "size-3.5 text-muted-foreground transition-transform duration-200",
-                      dropdownOpen && "rotate-180"
-                    )}
-                  />
-                </button>
+                  <Globe className="size-3.5 text-primary" />
+                  <span className="hidden sm:inline">내 페이지</span>
+                </Link>
 
-                {/* TDS 스타일 드롭다운 팝오버 */}
-                {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-white p-1.5 shadow-[0_4px_24px_rgba(25,31,40,0.08)] z-50 animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right">
-                    {/* 계정 요약 정보 */}
-                    <div className="px-3 py-2.5">
-                      <p className="text-sm font-semibold text-foreground truncate">
-                        {displayName}님
-                      </p>
-                      {user.email && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {user.email}
-                        </p>
+                {/* 프로필 클릭 시 드롭다운 */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setDropdownOpen((prev) => !prev)}
+                    className="h-9 px-2 rounded-full flex items-center gap-1.5 hover:bg-muted/70 active:bg-muted transition-colors cursor-pointer select-none"
+                    aria-expanded={dropdownOpen}
+                    aria-haspopup="true"
+                  >
+                    <Avatar className="size-7 border border-border">
+                      <AvatarImage
+                        src={user.photoURL || undefined}
+                        alt={displayName}
+                      />
+                      <AvatarFallback className="text-[11px] font-semibold text-muted-foreground bg-muted">
+                        {displayName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-foreground max-w-[110px] truncate">
+                      {displayName}님
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "size-3.5 text-muted-foreground transition-transform duration-200",
+                        dropdownOpen && "rotate-180"
                       )}
-                    </div>
+                    />
+                  </button>
 
-                    <div className="h-px bg-border my-1" />
+                  {/* TDS 스타일 드롭다운 팝오버 */}
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-white p-1.5 shadow-[0_4px_24px_rgba(25,31,40,0.08)] z-50 animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right">
+                      {/* 계정 요약 정보 */}
+                      <div className="px-3 py-2.5">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {displayName}님
+                        </p>
+                        {user.email && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {user.email}
+                          </p>
+                        )}
+                      </div>
 
-                    {/* 액션 메뉴 목록 */}
-                    <div className="space-y-0.5">
-                      {/* 1. 프로필 수정 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setEditProfileOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
-                      >
-                        <UserPen className="size-4 text-muted-foreground" />
-                        <span>프로필 수정</span>
-                      </button>
+                      <div className="h-px bg-border my-1" />
 
-                      {/* 2. 내 페이지 미리보기 */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setPreviewOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
-                      >
-                        <Eye className="size-4 text-muted-foreground" />
-                        <span>내 페이지 미리보기</span>
-                      </button>
-
-                      {/* 3. 내 링크 복사 */}
-                      <button
-                        type="button"
-                        onClick={handleCopyLink}
-                        className="w-full flex items-center justify-between px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {isCopied ? (
-                            <Check className="size-4 text-primary" />
-                          ) : (
-                            <Copy className="size-4 text-muted-foreground" />
-                          )}
-                          <span
-                            className={cn(
-                              isCopied && "text-primary font-medium"
-                            )}
-                          >
-                            {isCopied ? "링크 복사 완료" : "내 링크 복사"}
+                      {/* 액션 메뉴 목록 */}
+                      <div className="space-y-0.5">
+                        {/* 1. 개인별 페이지 이동 */}
+                        <Link
+                          href={personalPageUrl}
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                        >
+                          <Globe className="size-4 text-primary" />
+                          <span className="font-medium text-primary">
+                            내 페이지 바로가기
                           </span>
-                        </div>
-                      </button>
-                    </div>
+                        </Link>
+
+                        {/* 2. 프로필 수정 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            setEditProfileOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                        >
+                          <UserPen className="size-4 text-muted-foreground" />
+                          <span>프로필 수정</span>
+                        </button>
+
+                        {/* 3. 내 페이지 미리보기 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDropdownOpen(false);
+                            setPreviewOpen(true);
+                          }}
+                          className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                        >
+                          <Eye className="size-4 text-muted-foreground" />
+                          <span>내 페이지 미리보기</span>
+                        </button>
+
+                        {/* 4. 내 링크 복사 */}
+                        <button
+                          type="button"
+                          onClick={handleCopyLink}
+                          className="w-full flex items-center justify-between px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {isCopied ? (
+                              <Check className="size-4 text-primary" />
+                            ) : (
+                              <Copy className="size-4 text-muted-foreground" />
+                            )}
+                            <span
+                              className={cn(
+                                isCopied && "text-primary font-medium"
+                              )}
+                            >
+                              {isCopied ? "링크 복사 완료" : "내 링크 복사"}
+                            </span>
+                          </div>
+                        </button>
+                      </div>
 
                     <div className="h-px bg-border my-1" />
 
@@ -259,7 +297,8 @@ export function Header() {
                   </div>
                 )}
               </div>
-            ) : (
+            </div>
+          ) : (
               <Button
                 variant="outline"
                 size="sm"

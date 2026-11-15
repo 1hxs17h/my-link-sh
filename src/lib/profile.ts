@@ -281,3 +281,156 @@ export async function updateUserProfile(
     throw error;
   }
 }
+
+/**
+ * displayName 또는 username으로 users 컬렉션에서 사용자를 검색합니다.
+ * Firestore where 쿼리를 순차적으로 실행하여 해당하는 사용자의 userId와 ProfileData를 반환합니다.
+ */
+export async function getUserByDisplayName(
+  rawDisplayName: string
+): Promise<{ userId: string; profile: ProfileData } | null> {
+  if (!rawDisplayName) return null;
+
+  let target = "";
+  try {
+    target = decodeURIComponent(rawDisplayName).trim();
+  } catch {
+    target = rawDisplayName.trim();
+  }
+
+  // '@' 접두사가 포함된 경우 제거
+  const normalized = (target.startsWith("@") ? target.slice(1) : target).trim();
+  if (!normalized) return null;
+
+  const lowerNormalized = normalized.toLowerCase();
+  const usersRef = collection(db, "users");
+
+  try {
+    // 1. users 컬렉션에서 username 필드로 where 쿼리 검색
+    let userSnapDoc: { id: string; data: () => Record<string, unknown> } | null = null;
+
+    const qUsername = query(usersRef, where("username", "==", lowerNormalized));
+    const snapUsername = await getDocs(qUsername);
+    if (!snapUsername.empty) {
+      const found = snapUsername.docs[0];
+      userSnapDoc = { id: found.id, data: () => found.data() as Record<string, unknown> };
+    }
+
+    // 2. 일치하지 않으면 profile.username 필드로 where 쿼리 검색
+    if (!userSnapDoc) {
+      try {
+        const qProfileUsername = query(
+          usersRef,
+          where("profile.username", "==", lowerNormalized)
+        );
+        const snapProfileUsername = await getDocs(qProfileUsername);
+        if (!snapProfileUsername.empty) {
+          const found = snapProfileUsername.docs[0];
+          userSnapDoc = { id: found.id, data: () => found.data() as Record<string, unknown> };
+        }
+      } catch (err) {
+        // 복합 인덱스 이슈 대비
+        console.warn("profile.username 쿼리 생략:", err);
+      }
+    }
+
+    // 3. 일치하지 않으면 displayName 필드로 where 쿼리 검색
+    if (!userSnapDoc) {
+      const qDisplayName = query(usersRef, where("displayName", "==", normalized));
+      const snapDisplayName = await getDocs(qDisplayName);
+      if (!snapDisplayName.empty) {
+        const found = snapDisplayName.docs[0];
+        userSnapDoc = { id: found.id, data: () => found.data() as Record<string, unknown> };
+      }
+    }
+
+    // 4. 일치하지 않으면 name 필드로 where 쿼리 검색
+    if (!userSnapDoc) {
+      const qName = query(usersRef, where("name", "==", normalized));
+      const snapName = await getDocs(qName);
+      if (!snapName.empty) {
+        const found = snapName.docs[0];
+        userSnapDoc = { id: found.id, data: () => found.data() as Record<string, unknown> };
+      }
+    }
+
+    // 5. 일치하지 않으면 usernames/{normalized} 매핑 문서 단일 읽기로 uid 확인
+    if (!userSnapDoc) {
+      const usernameMapRef = doc(db, "usernames", lowerNormalized);
+      const usernameMapSnap = await getDoc(usernameMapRef);
+      if (usernameMapSnap.exists()) {
+        const mapData = usernameMapSnap.data();
+        if (mapData?.uid) {
+          const userDocRef = doc(db, "users", mapData.uid);
+          const userDirectSnap = await getDoc(userDocRef);
+          if (userDirectSnap.exists()) {
+            userSnapDoc = {
+              id: userDirectSnap.id,
+              data: () => userDirectSnap.data() as Record<string, unknown>,
+            };
+          }
+        }
+      }
+    }
+
+    if (!userSnapDoc) {
+      return null;
+    }
+
+    const data = userSnapDoc.data();
+    const profileObj = (data.profile || {}) as Record<string, unknown>;
+
+    const username =
+      (typeof profileObj.username === "string" && profileObj.username) ||
+      (typeof data.username === "string" && data.username) ||
+      lowerNormalized;
+
+    const name =
+      (typeof profileObj.name === "string" && profileObj.name) ||
+      (typeof data.name === "string" && data.name) ||
+      (typeof data.displayName === "string" && data.displayName) ||
+      normalized;
+
+    const role =
+      (typeof profileObj.role === "string" && profileObj.role) ||
+      (typeof data.role === "string" && data.role) ||
+      "";
+
+    const statusBadge =
+      (typeof profileObj.statusBadge === "string" && profileObj.statusBadge) ||
+      (typeof data.statusBadge === "string" && data.statusBadge) ||
+      "";
+
+    const bio =
+      (typeof profileObj.bio === "string" && profileObj.bio) ||
+      (typeof data.bio === "string" && data.bio) ||
+      "";
+
+    const avatarUrl =
+      (typeof profileObj.avatarUrl === "string" && profileObj.avatarUrl) ||
+      (typeof data.avatarUrl === "string" && data.avatarUrl) ||
+      (typeof data.photoURL === "string" && data.photoURL) ||
+      "";
+
+    const socials =
+      ((profileObj.socials || data.socials || {}) as ProfileData["socials"]) || {};
+
+    const profile: ProfileData = {
+      username,
+      name,
+      role,
+      statusBadge,
+      bio,
+      avatarUrl,
+      socials,
+    };
+
+    return {
+      userId: userSnapDoc.id,
+      profile,
+    };
+  } catch (error) {
+    console.error(`사용자 검색 실패 (displayName: ${rawDisplayName}):`, error);
+    throw error;
+  }
+}
