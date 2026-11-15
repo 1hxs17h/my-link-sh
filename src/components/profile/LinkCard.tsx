@@ -12,16 +12,23 @@ import { linkFormSchema, type LinkFormValues } from "@/lib/validations/link";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DeleteLinkModal } from "./DeleteLinkModal";
-import { formatDateTime } from "@/lib/links";
+import { formatDateTime, incrementLinkClickCount } from "@/lib/links";
 import { Pencil, Trash2, Loader2, ExternalLink, Check, X, MousePointerClick } from "lucide-react";
 import { cn } from "cn";
 
-export function LinkCard({ block }: { block: LinkBlock }) {
+export interface LinkCardProps {
+  block: LinkBlock;
+  readOnly?: boolean;
+  ownerUserId?: string;
+}
+
+export function LinkCard({ block, readOnly = false, ownerUserId }: LinkCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const user = useMyLinkStore((state) => state.user);
+  const isEditable = !readOnly && !!user;
   const { mutateAsync: updateLink, isPending: isUpdating } = useUpdateLink(user?.uid);
 
   const {
@@ -248,6 +255,13 @@ export function LinkCard({ block }: { block: LinkBlock }) {
               href={block.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => {
+                if (ownerUserId) {
+                  incrementLinkClickCount(ownerUserId, block.id).catch(() => {});
+                } else if (user?.uid) {
+                  incrementLinkClickCount(user.uid, block.id).catch(() => {});
+                }
+              }}
               className="flex-1 flex items-center justify-between min-w-0 group/link pr-1 cursor-pointer"
             >
               <div className="flex flex-col space-y-1 overflow-hidden pr-2">
@@ -259,45 +273,49 @@ export function LinkCard({ block }: { block: LinkBlock }) {
                     {block.description}
                   </span>
                 )}
-                {updatedAtFormatted && (
+                {isEditable && updatedAtFormatted && (
                   <span className="text-[11px] text-muted-foreground/60 font-normal">
                     수정됨 {updatedAtFormatted}
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 font-normal">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12s2.545-5 7-5c4.454 0 7 5 7 5s-2.546 5-7 5c-4.455 0-7-5-7-5z"/><path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
-                  클릭 {block.clickCount ?? 0}회
-                </span>
+                {isEditable && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 font-normal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12s2.545-5 7-5c4.454 0 7 5 7 5s-2.546 5-7 5c-4.455 0-7-5-7-5z"/><path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+                    클릭 {block.clickCount ?? 0}회
+                  </span>
+                )}
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground/50 group-hover/link:text-primary shrink-0 transition-colors" />
             </a>
 
-            {/* 항상 표시되는 수정/삭제 버튼 */}
-            <div className="flex items-center gap-1.5 shrink-0 pl-1 border-l border-border/60">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="h-8 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                title="링크 수정"
-              >
-                <Pencil className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                수정
-              </Button>
+            {/* 로그인한 소유자에게만 표시되는 수정/삭제 버튼 */}
+            {isEditable && (
+              <div className="flex items-center gap-1.5 shrink-0 pl-1 border-l border-border/60">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="h-8 px-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  title="링크 수정"
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+                  수정
+                </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="h-8 px-2.5 rounded-lg text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors"
-                title="링크 삭제"
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                삭제
-              </Button>
-            </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="h-8 px-2.5 rounded-lg text-xs font-medium text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                  title="링크 삭제"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  삭제
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Card>

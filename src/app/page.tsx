@@ -14,7 +14,7 @@ import { Footer } from "@/components/profile/Footer";
 import { GoogleIcon } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { getCreatedAtMillis } from "@/lib/links";
-import { Lock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const emptySubscribe = () => () => {};
 
@@ -76,11 +76,11 @@ export default function Home() {
           <SocialLinksBar socials={profile.socials} />
         </section>
 
-        {/* 메인 콘텐츠 영역: 로그인 상태에 따른 화면 구성 */}
+        {/* 메인 콘텐츠 영역 */}
         <section className="flex-1 flex flex-col">
-          {authLoading ? (
-            // 인증 상태 감지 중 스켈레톤
-            <div className="space-y-3 py-2">
+          {authLoading || isLoading ? (
+            // 로딩 상태 스켈레톤
+            <div className="space-y-3 py-1">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -94,65 +94,24 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          ) : !user ? (
-            // 로그아웃 상태: 정제된 TDS 스타일의 로그인 안내 카드
-            <div className="rounded-2xl border border-border bg-white p-8 text-center flex flex-col items-center">
-              <div className="size-11 rounded-full bg-muted flex items-center justify-center mb-3.5 text-muted-foreground">
-                <Lock className="size-5 text-foreground/75" />
-              </div>
-
-              <h2 className="text-base font-bold text-foreground mb-1.5 tracking-tight">
-                로그인 후 링크를 관리할 수 있어요
-              </h2>
-              <p className="text-xs text-muted-foreground leading-relaxed max-w-[260px] mb-6">
-                Google 계정으로 로그인하면 나만의 링크를 등록하고 언제든지 수정할 수 있어요.
-              </p>
-
-              <Button
-                onClick={handleLogin}
-                disabled={isLoggingIn}
-                className="w-full max-w-[260px] h-10 rounded-xl bg-primary text-primary-foreground font-medium text-xs flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <>
-                    <GoogleIcon className="size-3.5" />
-                    <span>Google로 계속하기</span>
-                  </>
-                )}
-              </Button>
-            </div>
           ) : (
-            // 로그인 상태: 개인화된 링크 목록 및 링크 추가 기능
             <>
-              {/* 상단 링크 추가 다이얼로그 버튼 */}
-              <div className="mb-3">
-                <AddLinkDialog />
-              </div>
-
-              {isLoading ? (
-                <div className="space-y-3 py-1">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="w-full p-4 rounded-2xl bg-white border border-border/70 shadow-xs animate-pulse flex items-center justify-between"
-                    >
-                      <div className="flex-1 space-y-2 pr-4">
-                        <div className="h-4 bg-muted rounded w-2/5" />
-                        <div className="h-3 bg-muted/60 rounded w-4/5" />
-                      </div>
-                      <div className="w-5 h-5 bg-muted/50 rounded-full shrink-0" />
-                    </div>
-                  ))}
+              {/* 로그인 상태일 때만 상단 링크 추가 다이얼로그 노출 */}
+              {user && (
+                <div className="mb-3">
+                  <AddLinkDialog />
                 </div>
-              ) : sortedBlocks.length === 0 ? (
+              )}
+
+              {sortedBlocks.length === 0 ? (
                 <div className="py-12 px-4 text-center rounded-2xl border border-dashed border-border bg-white space-y-1">
                   <p className="font-semibold text-foreground text-sm">
                     등록된 링크가 아직 없어요
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    상단의 &apos;새 링크 추가&apos; 버튼을 눌러 링크를 등록해 보세요.
+                    {user
+                      ? "상단의 '새 링크 추가' 버튼을 눌러 링크를 등록해 보세요."
+                      : "곧 새로운 링크가 등록될 예정이에요."}
                   </p>
                 </div>
               ) : (
@@ -161,10 +120,46 @@ export default function Home() {
                     return <SectionHeader key={block.id} title={block.title} />;
                   }
                   if (block.type === "link") {
-                    return <LinkCard key={block.id} block={block} />;
+                    return (
+                      <LinkCard
+                        key={block.id}
+                        block={block}
+                        readOnly={!user}
+                        ownerUserId={user?.uid}
+                      />
+                    );
                   }
                   return null;
                 })
+              )}
+
+              {/* 비로그인 방문자 안내 배너 */}
+              {!user && (
+                <div className="mt-5 p-4 rounded-2xl bg-white border border-border/80 flex items-center justify-between gap-3 shadow-xs">
+                  <div className="text-left space-y-0.5 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      나만의 링크 페이지 만들기
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Google 계정으로 내 링크를 모아보세요
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleLogin}
+                    disabled={isLoggingIn}
+                    size="sm"
+                    className="h-8 px-3 rounded-xl bg-primary text-primary-foreground font-medium text-xs flex items-center gap-1.5 shrink-0 shadow-none hover:bg-primary/90"
+                  >
+                    {isLoggingIn ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <>
+                        <GoogleIcon className="size-3" />
+                        <span>시작하기</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </>
           )}

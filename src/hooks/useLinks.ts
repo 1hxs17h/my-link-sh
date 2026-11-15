@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LinkBlock, AddBlockInput } from "@/types/mylink";
+import { DUMMY_BLOCKS } from "@/lib/dummy-data";
+import { getUserByDisplayName } from "@/lib/profile";
 import {
   getUserLinks,
   addUserLink,
@@ -19,26 +21,56 @@ export const linksQueryKeys = {
 
 /**
  * 사용자별 링크 목록 조회 쿼리 훅
+ * - 로그인 상태: 본인의 Firestore 링크 목록 조회
+ * - 비로그인 상태: 대표 사용자(기본값: "seohee")의 Firestore 링크 목록 조회 -> anonymous 링크 -> DUMMY_BLOCKS fallback
  * - 5분 동안 fresh 상태 유지 (staleTime)
  * - 창 포커스 복귀 시 불필요한 자동 재요청 없음 (리소스 절약)
  */
-export function useLinks(userId?: string) {
+export function useLinks(userId?: string, defaultUsername: string = "seohee") {
   const query = useQuery({
-    queryKey: linksQueryKeys.user(userId),
-    queryFn: async () => {
-      if (!userId) return [];
-      const links = await getUserLinks(userId);
-      // 스토어 상태도 동기화 (기존 의존 컴포넌트 호환)
-      useMyLinkStore.getState().setBlocks(links);
-      return links;
+    queryKey: linksQueryKeys.user(userId || `public-${defaultUsername}`),
+    queryFn: async (): Promise<LinkBlock[]> => {
+      // 1. 로그인 사용자인 경우 본인의 links 조회
+      if (userId) {
+        const links = await getUserLinks(userId);
+        useMyLinkStore.getState().setBlocks(links);
+        return links;
+      }
+
+      // 2. 비로그인 방문자인 경우: 대표 사용자 계정의 저장된 링크 조회 시도
+      try {
+        const publicUser = await getUserByDisplayName(defaultUsername);
+        if (publicUser?.userId) {
+          const publicLinks = await getUserLinks(publicUser.userId);
+          if (publicLinks && publicLinks.length > 0) {
+            useMyLinkStore.getState().setBlocks(publicLinks);
+            return publicLinks;
+          }
+        }
+      } catch (err) {
+        console.warn("대표 사용자 링크 조회 실패:", err);
+      }
+
+      // 3. anonymous 컬렉션 링크 확인
+      try {
+        const anonLinks = await getUserLinks("anonymous");
+        if (anonLinks && anonLinks.length > 0) {
+          useMyLinkStore.getState().setBlocks(anonLinks);
+          return anonLinks;
+        }
+      } catch (err) {
+        console.warn("anonymous 링크 조회 실패:", err);
+      }
+
+      // 4. 저장된 데이터가 없는 경우 DUMMY_BLOCKS 반환
+      return DUMMY_BLOCKS;
     },
-    enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });
 
   return {
-    blocks: query.data ?? [],
-    isLoading: query.isLoading && !!userId,
+    blocks: query.data ?? (userId ? [] : DUMMY_BLOCKS),
+    isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,
