@@ -6,7 +6,7 @@ interface PageProps {
 }
 
 export function generateStaticParams() {
-  return [];
+  return [{ displayName: "demo" }];
 }
 
 export async function generateMetadata({
