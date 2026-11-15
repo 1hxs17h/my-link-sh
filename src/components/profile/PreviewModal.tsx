@@ -87,6 +87,11 @@ export function PreviewModal({ open, onOpenChange }: PreviewModalProps) {
               </AvatarFallback>
             </Avatar>
 
+            {profile.username && (
+              <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-blue-50 px-2 py-0.5 rounded-full mb-1">
+                <span>@{profile.username}</span>
+              </div>
+            )}
             <h3 className="text-xl font-bold text-foreground tracking-tight">
               {profile.name}
             </h3>

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { ProfileData, LinkBlock, AddBlockInput } from "@/types/mylink";
+import { ProfileData, LinkBlock, AddBlockInput, UpdateProfileInput } from "@/types/mylink";
 import { DUMMY_PROFILE } from "./dummy-data";
 import {
   addUserLink,
@@ -8,6 +8,7 @@ import {
   getUserLinks,
   getCreatedAtMillis,
 } from "./links";
+import { getUserProfile, updateUserProfile } from "./profile";
 import { onAuthListener } from "./auth";
 import type { User } from "firebase/auth";
 
@@ -15,11 +16,14 @@ export interface MyLinkStoreState {
   user: User | null;
   authLoading: boolean;
   profile: ProfileData;
+  isProfileLoading: boolean;
   blocks: LinkBlock[];
   isLoading: boolean;
   setUser: (user: User | null) => void;
   setAuthLoading: (loading: boolean) => void;
   setProfile: (profile: ProfileData) => void;
+  fetchProfile: (userId?: string) => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
   setBlocks: (blocks: LinkBlock[]) => void;
   fetchBlocks: (userId?: string) => Promise<void>;
   addBlock: (input: AddBlockInput) => Promise<LinkBlock>;
@@ -37,26 +41,97 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
   user: null,
   authLoading: true,
   profile: DUMMY_PROFILE,
+  isProfileLoading: false,
   blocks: [],
   isLoading: false,
 
   setUser: (user) => {
-    set((state) => ({
-      user,
-      profile: user
-        ? {
-            ...state.profile,
-            name:
-              (user.email ? user.email.split("@")[0] : user.displayName) ||
-              state.profile.name,
-            avatarUrl: user.photoURL || state.profile.avatarUrl,
-          }
-        : DUMMY_PROFILE,
-    }));
+    set((state) => {
+      const emailUsername = user?.email
+        ? user.email.split("@")[0].replace(/[^a-zA-Z0-9._-]/g, "")
+        : "";
+      return {
+        user,
+        profile: user
+          ? {
+              ...state.profile,
+              username: state.profile.username || emailUsername || "user",
+              name:
+                (user.email ? user.email.split("@")[0] : user.displayName) ||
+                state.profile.name,
+              avatarUrl: user.photoURL || state.profile.avatarUrl,
+            }
+          : DUMMY_PROFILE,
+      };
+    });
   },
 
   setAuthLoading: (authLoading) => set({ authLoading }),
   setProfile: (profile) => set({ profile }),
+
+  fetchProfile: async (userIdOverride?: string) => {
+    const targetUid = userIdOverride ?? get().user?.uid;
+    if (!targetUid) return;
+
+    try {
+      set({ isProfileLoading: true });
+      const savedProfile = await getUserProfile(targetUid);
+      if (savedProfile) {
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            ...(savedProfile.username ? { username: savedProfile.username } : {}),
+            ...(savedProfile.name ? { name: savedProfile.name } : {}),
+            ...(savedProfile.bio !== undefined ? { bio: savedProfile.bio } : {}),
+          },
+          isProfileLoading: false,
+        }));
+      } else {
+        set({ isProfileLoading: false });
+      }
+    } catch (error) {
+      console.error(`프로필 로드 에러 (users/${targetUid}):`, error);
+      set({ isProfileLoading: false });
+    }
+  },
+
+  updateProfile: async (input: UpdateProfileInput) => {
+    const targetUid = get().user?.uid;
+    if (!targetUid) {
+      throw new Error("로그인이 필요합니다.");
+    }
+
+    const currentProfile = get().profile;
+    const isUsernameChanged =
+      input.username.trim().toLowerCase() !==
+      (currentProfile.username || "").trim().toLowerCase();
+    const isNameChanged =
+      input.name.trim() !== (currentProfile.name || "").trim();
+    const isBioChanged =
+      (input.bio || "").trim() !== (currentProfile.bio || "").trim();
+
+    // 변동된 사항이 전혀 없는 경우 Firestore 업데이트를 수행하지 않고 즉시 반환
+    if (!isUsernameChanged && !isNameChanged && !isBioChanged) {
+      return;
+    }
+
+    // 1. Firestore users/{targetUid}/profile 에 저장 및 usernames 동기화
+    await updateUserProfile(targetUid, input, {
+      username: currentProfile.username,
+      name: currentProfile.name,
+      bio: currentProfile.bio,
+    });
+
+    // 2. 스토어 상태 즉시 갱신
+    set((state) => ({
+      profile: {
+        ...state.profile,
+        username: input.username.trim().toLowerCase(),
+        name: input.name.trim(),
+        bio: input.bio.trim(),
+      },
+    }));
+  },
 
   setBlocks: (blocks) => {
     // createdAt 기준 최신순 (내림차순) 정렬 보장
@@ -197,11 +272,14 @@ export const useMyLinkStore = create<MyLinkStoreState>((set, get) => ({
       set({ authLoading: false });
 
       if (user) {
-        // 로그인 상태: users/{user.uid}/links 에서 불러오기
-        await get().fetchBlocks(user.uid);
+        // 로그인 상태: links 및 profile 병렬 로드
+        await Promise.all([
+          get().fetchBlocks(user.uid),
+          get().fetchProfile(user.uid),
+        ]);
       } else {
-        // 로그아웃 상태: blocks 비우기
-        set({ blocks: [], isLoading: false });
+        // 로그아웃 상태: blocks 및 profile 초기화
+        set({ blocks: [], profile: DUMMY_PROFILE, isLoading: false });
       }
     });
 

@@ -6,6 +6,7 @@ import { loginWithGoogle, logout } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PreviewModal } from "@/components/profile/PreviewModal";
+import { EditProfileDialog } from "@/components/profile/EditProfileDialog";
 import {
   Loader2,
   ChevronDown,
@@ -13,6 +14,7 @@ import {
   Copy,
   Check,
   LogOut,
+  UserPen,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
@@ -41,10 +43,11 @@ export function GoogleIcon({ className = "size-3.5" }: { className?: string }) {
 }
 
 export function Header() {
-  const { user, authLoading, initAuth } = useMyLinkStore();
+  const { user, profile, authLoading, initAuth } = useMyLinkStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -116,10 +119,10 @@ export function Header() {
     }
   };
 
-  // 디스플레이 네임: 이메일 앞부분(아이디) 우선 사용
-  const displayName = user?.email
-    ? user.email.split("@")[0]
-    : user?.displayName || "홍길동";
+  // 디스플레이 네임: 프로필 이름 또는 이메일 앞부분(아이디) 우선 사용
+  const displayName =
+    profile.name ||
+    (user?.email ? user.email.split("@")[0] : user?.displayName || "홍길동");
 
   return (
     <>
@@ -184,7 +187,20 @@ export function Header() {
 
                     {/* 액션 메뉴 목록 */}
                     <div className="space-y-0.5">
-                      {/* 1. 내 페이지 미리보기 */}
+                      {/* 1. 프로필 수정 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setEditProfileOpen(true);
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 h-9 rounded-xl text-sm text-foreground hover:bg-muted/70 active:bg-muted transition-colors text-left cursor-pointer"
+                      >
+                        <UserPen className="size-4 text-muted-foreground" />
+                        <span>프로필 수정</span>
+                      </button>
+
+                      {/* 2. 내 페이지 미리보기 */}
                       <button
                         type="button"
                         onClick={() => {
@@ -197,7 +213,7 @@ export function Header() {
                         <span>내 페이지 미리보기</span>
                       </button>
 
-                      {/* 2. 내 링크 복사 */}
+                      {/* 3. 내 링크 복사 */}
                       <button
                         type="button"
                         onClick={handleCopyLink}
@@ -265,6 +281,12 @@ export function Header() {
 
       {/* 내 페이지 미리보기 모달 */}
       <PreviewModal open={previewOpen} onOpenChange={setPreviewOpen} />
+
+      {/* 프로필 수정 모달 */}
+      <EditProfileDialog
+        open={editProfileOpen}
+        onOpenChange={setEditProfileOpen}
+      />
     </>
   );
 }

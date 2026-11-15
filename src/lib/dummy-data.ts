@@ -4,6 +4,7 @@ import { LinkBlock, ProfileData } from "@/types/mylink";
 // Phase 1: 프로필 더미 데이터
 // ==========================================
 export const DUMMY_PROFILE: ProfileData = {
+  username: "seohee",
   name: "한서희",
   role: "프론트엔드 개발자",
   statusBadge: "새로운 기회를 찾고 있어요",

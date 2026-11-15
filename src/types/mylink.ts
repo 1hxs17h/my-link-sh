@@ -37,10 +37,18 @@ export interface SocialLinks {
 
 // 프로필 데이터
 export interface ProfileData {
+  username?: string;
   name: string;
   role: string;
   statusBadge: string;
   bio: string;
   avatarUrl: string;
   socials: SocialLinks;
+}
+
+// 프로필 수정 폼 입력 형태
+export interface UpdateProfileInput {
+  username: string;
+  name: string;
+  bio: string;
 }
