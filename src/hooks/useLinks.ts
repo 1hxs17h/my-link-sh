@@ -8,6 +8,7 @@ import {
   updateUserLink,
   deleteUserLink,
   getCreatedAtMillis,
+  incrementLinkClickCount,
 } from "@/lib/links";
 import { useMyLinkStore } from "@/lib/store";
 
@@ -176,6 +177,37 @@ export function useDeleteLink(userId?: string) {
         queryClient.setQueryData(linksQueryKeys.user(userId), context.previousLinks);
         useMyLinkStore.getState().setBlocks(context.previousLinks);
       }
+    },
+  });
+}
+
+/**
+ * 링크 클릭 카운트 증가 뮤테이션 훅
+ * - 클릭 즉시 캐시의 clickCount를 낙관적으로 +1 반영
+ * - Firestore increment()로 서버에도 원자적으로 저장
+ */
+export function useIncrementClickCount(userId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      if (!userId) return;
+      await incrementLinkClickCount(userId, linkId);
+    },
+    onMutate: async (linkId: string) => {
+      // 캐시에서 해당 링크의 clickCount를 즉시 +1 (낙관적 업데이트)
+      queryClient.setQueryData<LinkBlock[]>(
+        linksQueryKeys.user(userId),
+        (old = []) =>
+          old.map((block) =>
+            block.id === linkId
+              ? { ...block, clickCount: (block.clickCount ?? 0) + 1 }
+              : block
+          )
+      );
+      useMyLinkStore.getState().setBlocks(
+        queryClient.getQueryData<LinkBlock[]>(linksQueryKeys.user(userId)) ?? []
+      );
     },
   });
 }

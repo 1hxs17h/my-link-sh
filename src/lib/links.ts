@@ -10,6 +10,7 @@ import {
   deleteDoc,
   deleteField,
   serverTimestamp,
+  increment,
   DocumentData,
   QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -93,6 +94,7 @@ function mapAndSortSnapshotDocs(docs: QueryDocumentSnapshot<DocumentData>[]): Li
       description: data.description || undefined,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
       order: typeof data.order === "number" ? data.order : index,
+      clickCount: typeof data.clickCount === "number" ? data.clickCount : 0,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };
@@ -286,4 +288,24 @@ export async function deleteUserLink(userId: string, id: string): Promise<void> 
  */
 export async function deleteAnonymousLink(id: string): Promise<void> {
   return deleteUserLink("anonymous", id);
+}
+
+/**
+ * Firestore 경로 `users/{userId}/links/{id}` 문서의 clickCount를 1 증가시킵니다.
+ * 링크 클릭 시 호출하여 클릭 수를 집계합니다.
+ */
+export async function incrementLinkClickCount(
+  userId: string,
+  linkId: string
+): Promise<void> {
+  if (!userId || !linkId) return;
+  try {
+    const linkDocRef = doc(db, "users", userId, "links", linkId);
+    await updateDoc(linkDocRef, {
+      clickCount: increment(1),
+    });
+  } catch (error) {
+    // 클릭 카운트 실패는 사용자 경험에 영향 없이 조용히 처리
+    console.warn(`클릭 카운트 업데이트 실패 (users/${userId}/links/${linkId}):`, error);
+  }
 }

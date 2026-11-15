@@ -3,7 +3,7 @@
 import { notFound } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getUserByDisplayName } from "@/lib/profile";
-import { getUserLinks, getCreatedAtMillis } from "@/lib/links";
+import { getUserLinks, getCreatedAtMillis, incrementLinkClickCount } from "@/lib/links";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -255,6 +255,10 @@ export function UserProfileView({ displayName }: UserProfileViewProps) {
                     href={block.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => {
+                      // 클릭 카운트 fire-and-forget (네비게이션 차단 없음)
+                      incrementLinkClickCount(userId, block.id).catch(() => {});
+                    }}
                     className="block p-4 rounded-2xl bg-white border border-border/80 shadow-xs hover:border-primary/40 hover:shadow-md transition-all duration-200 group cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-3">

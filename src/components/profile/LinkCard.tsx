@@ -13,7 +13,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DeleteLinkModal } from "./DeleteLinkModal";
 import { formatDateTime } from "@/lib/links";
-import { Pencil, Trash2, Loader2, ExternalLink, Check, X } from "lucide-react";
+import { Pencil, Trash2, Loader2, ExternalLink, Check, X, MousePointerClick } from "lucide-react";
 import { cn } from "cn";
 
 export function LinkCard({ block }: { block: LinkBlock }) {
@@ -264,6 +264,10 @@ export function LinkCard({ block }: { block: LinkBlock }) {
                     수정됨 {updatedAtFormatted}
                   </span>
                 )}
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 font-normal">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12s2.545-5 7-5c4.454 0 7 5 7 5s-2.546 5-7 5c-4.455 0-7-5-7-5z"/><path d="M12 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>
+                  클릭 {block.clickCount ?? 0}회
+                </span>
               </div>
               <ExternalLink className="h-4 w-4 text-muted-foreground/50 group-hover/link:text-primary shrink-0 transition-colors" />
             </a>

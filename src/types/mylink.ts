@@ -10,6 +10,7 @@ export interface LinkBlock {
   description?: string;// 부가 설명 문구 (선택)
   isActive: boolean;   // 노출 여부 (Phase 1에서는 true인 것만 렌더링)
   order: number;       // 표시 순서
+  clickCount?: number; // 클릭 수 (누적)
   createdAt?: unknown;     // 생성일시 (Firestore Timestamp 또는 Date 등)
   updatedAt?: unknown;     // 수정일시 (Firestore Timestamp 또는 Date 등)
 }
